@@ -304,18 +304,23 @@ function startCountdownThenPlay() {
 
 function startPrompter() {
   if (appState.prompter.isPlaying) return;
+  const viewport = root.querySelector("#prompterViewport");
+  if (viewport) appState.prompter.scrollTop = viewport.scrollTop;
   appState.prompter.isPlaying = true;
   requestWakeLock();
   lastFrame = performance.now();
+  syncPrompterPlaybackUi();
   rafId = requestAnimationFrame(tick);
-  render();
 }
 
 function stopPrompter() {
+  const viewport = root.querySelector("#prompterViewport");
+  if (viewport) appState.prompter.scrollTop = viewport.scrollTop;
   appState.prompter.isPlaying = false;
   if (rafId) cancelAnimationFrame(rafId);
   rafId = null;
   releaseWakeLock();
+  syncPrompterPlaybackUi();
 }
 
 function tick(now) {
@@ -329,10 +334,19 @@ function tick(now) {
   updatePrompterProgress();
   if (viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight - 2) {
     stopPrompter();
-    render();
     return;
   }
   rafId = requestAnimationFrame(tick);
+}
+
+function syncPrompterPlaybackUi() {
+  const screen = root.querySelector(".prompter-screen");
+  const button = root.querySelector("#playPrompterButton");
+  screen?.classList.toggle("is-playing", appState.prompter.isPlaying);
+  if (button) {
+    button.innerHTML = `<i data-lucide="${appState.prompter.isPlaying ? "pause" : "play"}"></i><span>${appState.prompter.isPlaying ? "暂停" : "开始"}</span>`;
+    if (window.lucide) window.lucide.createIcons();
+  }
 }
 
 function exportScript(id) {
@@ -597,11 +611,9 @@ function render() {
   bindCurrentView();
   if (window.lucide) window.lucide.createIcons();
   if (appState.route === "prompter") {
-    window.requestAnimationFrame(() => {
-      const viewport = root.querySelector("#prompterViewport");
-      if (viewport) viewport.scrollTop = appState.prompter.scrollTop || 0;
-      updatePrompterProgress();
-    });
+    const viewport = root.querySelector("#prompterViewport");
+    if (viewport) viewport.scrollTop = appState.prompter.scrollTop || 0;
+    updatePrompterProgress();
   }
 }
 
@@ -682,7 +694,6 @@ function bindPrompter() {
   root.querySelector("#playPrompterButton")?.addEventListener("click", () => {
     if (appState.prompter.isPlaying) {
       stopPrompter();
-      render();
     } else {
       startCountdownThenPlay();
     }
@@ -693,7 +704,6 @@ function bindPrompter() {
     if (viewport) viewport.scrollTop = 0;
     appState.prompter.scrollTop = 0;
     updatePrompterProgress();
-    render();
   });
   root.querySelector("#prevCharButton")?.addEventListener("click", () => {
     scrollPrompterBy(-window.innerHeight * 0.18);
@@ -717,7 +727,6 @@ function bindPrompter() {
   root.querySelector("#prompterViewport")?.addEventListener("click", (event) => {
     if (appState.prompter.tapPause && appState.prompter.isPlaying) {
       stopPrompter();
-      render();
     }
   });
   root.querySelector("#prompterViewport")?.addEventListener("scroll", (event) => {
@@ -788,7 +797,6 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     if (appState.prompter.isPlaying) {
       stopPrompter();
-      render();
     } else {
       startCountdownThenPlay();
     }
