@@ -1,0 +1,12 @@
+{
+  "name": "元宇宙普拉提提词器",
+  "short_name": "普拉提提词",
+  "description": "适合课程口播、动作讲解和现场拍摄的手机提词器。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
+  "orientation": "any",
+  "lang": "zh-CN"
+}

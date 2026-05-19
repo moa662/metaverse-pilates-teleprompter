@@ -10,6 +10,9 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 concurrency:
   group: "pages"
   cancel-in-progress: false
@@ -28,7 +31,7 @@ jobs:
       - name: Prepare static site
         run: |
           mkdir -p dist
-          cp index.html app.js styles.css .nojekyll dist/
+          cp index.html app.js styles.css manifest.webmanifest .nojekyll dist/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

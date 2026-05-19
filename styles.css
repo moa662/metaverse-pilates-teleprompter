@@ -505,10 +505,20 @@ svg {
   gap: 16px;
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.92), transparent);
   pointer-events: none;
+  transition: opacity 180ms ease;
 }
 
 .prompter-topbar > * {
   pointer-events: auto;
+}
+
+.prompter-screen.is-playing .prompter-topbar {
+  opacity: 0.34;
+}
+
+.prompter-screen.is-playing .prompter-topbar:focus-within,
+.prompter-screen.is-playing .prompter-topbar:hover {
+  opacity: 1;
 }
 
 .top-left {
@@ -533,6 +543,9 @@ svg {
   overflow-y: auto;
   scrollbar-width: none;
   scroll-behavior: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .prompter-viewport::-webkit-scrollbar {
@@ -549,24 +562,7 @@ svg {
   white-space: pre-wrap;
   word-break: break-word;
   text-align: left;
-  will-change: transform;
-}
-
-.reading-box {
-  position: absolute;
-  left: calc(16px + 5%);
-  right: calc(16px + 5%);
-  top: 30%;
-  z-index: 20;
-  height: calc(var(--prompter-font-size, 64px) * var(--prompter-line-height, 1.5) * 2.4);
-  border-top: 1px solid rgba(238, 248, 241, 0.34);
-  border-bottom: 1px solid rgba(238, 248, 241, 0.12);
-  background: transparent;
-  pointer-events: none;
-}
-
-.reading-box::before {
-  content: none;
+  text-wrap: pretty;
 }
 
 .prompter-controls {
@@ -679,23 +675,6 @@ svg {
   color: #d6d6d6;
   background: var(--surface-2);
   line-height: 1.65;
-}
-
-.countdown {
-  position: absolute;
-  inset: 0;
-  z-index: 120;
-  display: none;
-  place-items: center;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: clamp(90px, 26vw, 220px);
-  font-weight: 900;
-  pointer-events: none;
-}
-
-.countdown.show {
-  display: grid;
 }
 
 .toast {
@@ -905,10 +884,6 @@ label:focus-within {
   .prompter-topbar {
     min-height: 56px;
     padding-bottom: 10px;
-  }
-
-  .reading-box {
-    top: 28%;
   }
 
   .prompter-controls {

@@ -1,5 +1,5 @@
-const STORAGE_KEY = "metaverse-pilates-teleprompter-v4";
-const LEGACY_STORAGE_KEY = "metaverse-pilates-teleprompter-v3";
+const STORAGE_KEY = "metaverse-pilates-teleprompter-v5";
+const LEGACY_STORAGE_KEYS = ["metaverse-pilates-teleprompter-v4", "metaverse-pilates-teleprompter-v3"];
 const DRAFT_KEY = "storm-teleprompter-editor-draft-v1";
 
 const sampleScripts = [
@@ -33,7 +33,6 @@ const appState = {
     paddingX: 5,
     mirrorMode: false,
     responsive: true,
-    countdownSeconds: 0,
     scrollSpeed: 52,
     settingsOpen: false,
     tapPause: true,
@@ -44,7 +43,6 @@ const appState = {
 
 let rafId = null;
 let lastFrame = 0;
-let countdownTimer = null;
 let wakeLock = null;
 
 const root = document.querySelector("#app");
@@ -88,12 +86,13 @@ function readingTime(text) {
 function loadState() {
   try {
     const currentSaved = localStorage.getItem(STORAGE_KEY);
-    const legacySaved = localStorage.getItem(LEGACY_STORAGE_KEY);
+    const legacySaved = LEGACY_STORAGE_KEYS.map((key) => localStorage.getItem(key)).find(Boolean);
     const saved = JSON.parse(currentSaved || legacySaved);
     const isLegacy = !currentSaved && Boolean(legacySaved);
     appState.scripts = Array.isArray(saved?.scripts) && saved.scripts.length ? saved.scripts : sampleScripts;
     if (saved?.prompter) Object.assign(appState.prompter, saved.prompter, { isPlaying: false, settingsOpen: false, scrollTop: 0 });
-    if (isLegacy) appState.prompter.countdownSeconds = 0;
+    delete appState.prompter.countdownSeconds;
+    if (isLegacy) saveState();
   } catch {
     appState.scripts = sampleScripts;
   }
@@ -123,7 +122,6 @@ function setToast(message, type = "success") {
 
 function navigate(route, id = null) {
   stopPrompter();
-  clearCountdown();
   appState.route = route;
   appState.currentId = id;
   if (route === "prompter") appState.prompter.scrollTop = 0;
@@ -300,36 +298,8 @@ async function releaseWakeLock() {
   }
 }
 
-function clearCountdown() {
-  if (countdownTimer) window.clearInterval(countdownTimer);
-  countdownTimer = null;
-  const countdown = root.querySelector("#countdown");
-  if (countdown) {
-    countdown.classList.remove("show");
-    countdown.textContent = "";
-  }
-}
-
 function startCountdownThenPlay() {
-  clearCountdown();
-  if (appState.prompter.countdownSeconds <= 0) {
-    startPrompter();
-    return;
-  }
-  let remaining = appState.prompter.countdownSeconds;
-  const countdown = root.querySelector("#countdown");
-  if (!countdown) return;
-  countdown.textContent = remaining;
-  countdown.classList.add("show");
-  countdownTimer = window.setInterval(() => {
-    remaining -= 1;
-    if (remaining <= 0) {
-      clearCountdown();
-      startPrompter();
-    } else {
-      countdown.textContent = remaining;
-    }
-  }, 1000);
+  startPrompter();
 }
 
 function startPrompter() {
@@ -524,7 +494,7 @@ function renderPrompter() {
   const chars = scriptChars(script.content);
   const settingsClass = appState.prompter.settingsOpen ? "settings-drawer open" : "settings-drawer";
   return `
-    <main class="prompter-screen" style="--prompter-font-size:${appState.prompter.fontSize}px;--prompter-line-height:${appState.prompter.lineHeight};--prompter-padding:${appState.prompter.paddingX}%;">
+    <main class="prompter-screen ${appState.prompter.isPlaying ? "is-playing" : ""}" style="--prompter-font-size:${appState.prompter.fontSize}px;--prompter-line-height:${appState.prompter.lineHeight};--prompter-padding:${appState.prompter.paddingX}%;">
       <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
       <div class="prompter-topbar">
         <div class="top-left">
@@ -536,8 +506,6 @@ function renderPrompter() {
           <button class="round-button" id="settingsButton" type="button" aria-label="设置"><i data-lucide="sliders-horizontal"></i></button>
         </div>
       </div>
-      <div class="countdown" id="countdown"></div>
-      <div class="reading-box" style="left:calc(16px + ${appState.prompter.paddingX}%);right:calc(16px + ${appState.prompter.paddingX}%);"></div>
       <section id="prompterViewport" class="prompter-viewport ${appState.prompter.mirrorMode ? "mirror-mode" : ""}" style="font-size:${appState.prompter.fontSize}px;line-height:${appState.prompter.lineHeight};padding-left:calc(16px + ${appState.prompter.paddingX}%);padding-right:calc(16px + ${appState.prompter.paddingX}%);">
         <article class="prompter-content">${escapeHtml(textFromHtml(script.content))}</article>
       </section>
@@ -571,7 +539,6 @@ function renderPrompterSettings() {
     ${renderRange("lineHeightRange", "行距", p.lineHeight, 1, 2.5, 0.1, "")}
     ${renderRange("paddingRange", "左右边距", p.paddingX, 0, 40, 1, "%")}
     ${renderRange("scrollSpeedRange", "滚动速度", p.scrollSpeed, 12, 140, 2, "px/s")}
-    ${renderRange("countdownRange", "开拍倒计时", p.countdownSeconds, 0, 10, 1, "s")}
     ${renderToggle("mirrorToggle", "镜像模式", "用于分光镜反射", p.mirrorMode)}
     ${renderToggle("tapPauseToggle", "点击暂停", "播放时点按屏幕暂停", p.tapPause)}
     ${renderToggle("wakeLockToggle", "熄屏防护", "支持的浏览器会保持屏幕常亮", p.wakeLock)}
@@ -586,10 +553,28 @@ function renderRange(id, label, value, min, max, step, unit) {
   return `
     <label class="setting-block" for="${id}">
       <span>${label}</span>
-      <strong>${Number(value).toFixed(step < 1 ? 1 : 0)}${unit}</strong>
+      <strong>${formatRangeValue(value, step, unit)}</strong>
       <input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${value}">
     </label>
   `;
+}
+
+function formatRangeValue(value, step, unit) {
+  return `${Number(value).toFixed(Number(step) < 1 ? 1 : 0)}${unit}`;
+}
+
+function applyPrompterStyles() {
+  const screen = root.querySelector(".prompter-screen");
+  const viewport = root.querySelector("#prompterViewport");
+  if (!screen || !viewport) return;
+  screen.style.setProperty("--prompter-font-size", `${appState.prompter.fontSize}px`);
+  screen.style.setProperty("--prompter-line-height", appState.prompter.lineHeight);
+  screen.style.setProperty("--prompter-padding", `${appState.prompter.paddingX}%`);
+  viewport.style.fontSize = `${appState.prompter.fontSize}px`;
+  viewport.style.lineHeight = appState.prompter.lineHeight;
+  viewport.style.paddingLeft = `calc(16px + ${appState.prompter.paddingX}%)`;
+  viewport.style.paddingRight = `calc(16px + ${appState.prompter.paddingX}%)`;
+  updatePrompterProgress();
 }
 
 function renderToggle(id, title, desc, checked) {
@@ -743,20 +728,23 @@ function bindPrompter() {
   bindSetting("fontSizeRange", (value) => {
     appState.prompter.fontSize = Number(value);
     appState.prompter.responsive = false;
+    const responsiveToggle = root.querySelector("#responsiveToggle");
+    if (responsiveToggle) responsiveToggle.checked = false;
   });
   bindSetting("lineHeightRange", (value) => {
     appState.prompter.lineHeight = Number(value);
     appState.prompter.responsive = false;
+    const responsiveToggle = root.querySelector("#responsiveToggle");
+    if (responsiveToggle) responsiveToggle.checked = false;
   });
   bindSetting("paddingRange", (value) => {
     appState.prompter.paddingX = Number(value);
     appState.prompter.responsive = false;
+    const responsiveToggle = root.querySelector("#responsiveToggle");
+    if (responsiveToggle) responsiveToggle.checked = false;
   });
   bindSetting("scrollSpeedRange", (value) => {
     appState.prompter.scrollSpeed = Number(value);
-  });
-  bindSetting("countdownRange", (value) => {
-    appState.prompter.countdownSeconds = Number(value);
   });
   bindToggle("responsiveToggle", "responsive");
   bindToggle("mirrorToggle", "mirrorMode");
@@ -774,8 +762,10 @@ function bindPrompter() {
 function bindSetting(id, onChange) {
   root.querySelector(`#${id}`)?.addEventListener("input", (event) => {
     onChange(event.target.value);
+    const output = event.currentTarget.closest(".setting-block")?.querySelector("strong");
+    if (output) output.textContent = formatRangeValue(event.target.value, event.target.step, output.textContent.replace(/[-\d.]/g, ""));
     saveState();
-    render();
+    applyPrompterStyles();
   });
 }
 

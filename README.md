@@ -1,10 +1,20 @@
-# 影视飓风提词器复刻版
+# 元宇宙普拉提提词器
 
-这是从飞书秒搭链接开始整理的本地开发基线。当前环境访问 `https://miaoda.feishu.cn/app/app_4k6101r68dyt5` 时拿到的是飞书登录壳，不是业务页面源码，所以原始可访问快照已保存在 `source-snapshot/miaoda-login-shell.html`。
+一个纯静态、手机优先的网页提词器，适合课程口播、动作讲解、短视频拍摄和现场录制。项目已经部署到 GitHub Pages：
 
-## 打开方式
+https://moa662.github.io/metaverse-pilates-teleprompter/
 
-直接用浏览器打开 `index.html` 即可。也可以在本目录运行一个静态服务：
+## 功能
+
+- 稿件管理：新建、搜索、播放、编辑、复制、删除、导出。
+- 稿件编辑：标题、正文、TXT 导入、草稿自动保存、搜索定位。
+- 提词播放：全屏播放、匀速滚动、暂停继续、前后跳段、横屏尝试、镜像模式。
+- 手机适配：安全区、横屏布局、44px 以上触控按钮、外场 HTTPS 访问。
+- 现场优化：无阅读区遮罩、无默认倒计时、打开设置不重头播放。
+
+## 本地预览
+
+直接打开 `index.html` 即可。也可以在本目录启动静态服务：
 
 ```bash
 python -m http.server 5177
@@ -12,41 +22,17 @@ python -m http.server 5177
 
 然后访问 `http://localhost:5177`。
 
-## 手机上外场使用
+## 手机使用
 
-局域网地址只适合同一 Wi-Fi 下临时预览。外场拍摄要稳定使用，建议把本目录作为静态网站部署到：
+线上地址是公网 HTTPS，外场手机可以直接打开，不依赖同一 Wi-Fi。建议在手机浏览器里选择“添加到主屏幕”，现场使用时更接近 App。
 
-- Cloudflare Pages
-- Vercel
-- Netlify
-- GitHub Pages
+横屏按钮会尝试先进入全屏，再请求锁定横屏。部分浏览器，尤其 iPhone Safari，可能不允许网页强制横屏；这种情况下需要打开系统自动旋转后手动横放手机。
 
-部署后手机访问公网 HTTPS 地址即可，也可以用浏览器“添加到主屏幕”当作轻量 PWA 使用。当前项目是纯静态文件，不需要后端。
+## 部署
 
-### GitHub Pages
-
-项目已包含 GitHub Pages Actions 配置：
+仓库已包含 GitHub Pages Actions 配置：
 
 - `.github/workflows/pages.yml`
 - `.nojekyll`
 
-使用方式：
-
-1. 新建一个 GitHub 仓库。
-2. 把 `storm-teleprompter` 目录内的文件推到仓库 `main` 分支根目录。
-3. 到仓库 `Settings -> Pages`，Source 选择 `GitHub Actions`。
-4. 等 Actions 跑完后，手机访问 Pages 提供的 HTTPS 地址。
-
-工作流只发布 `index.html`、`app.js`、`styles.css` 和 `.nojekyll`，不会发布 `source-snapshot/` 里的抓取快照。
-
-## 已实现
-
-- 稿件管理页：搜索、新建、播放、编辑、复制、删除、导出
-- 稿件编辑页：标题、正文、TXT 导入、草稿自动保存、搜索定位、保存后去提词
-- 提词播放页：逐字高亮、已读变暗、阅读区域框、自动滚动、手动前后跳字
-- 设置面板：自动适配、字号、行距、左右边距、自动速度、倒计时、镜像、点击暂停、熄屏防护
-- 手机安全区、横屏布局和 44px 以上触控目标
-
-## 后续接入秒搭源码
-
-如果能从秒搭后台导出源码或拿到业务 JS，请把导出的文件放到 `source-snapshot/exported/`。后续可以把页面结构、默认文案、状态逻辑逐项对照迁移到当前纯前端版本。
+推送到 `main` 分支后会自动发布 `index.html`、`app.js`、`styles.css` 和 `.nojekyll`。本地的 `source-snapshot/` 已被忽略，不会部署。
