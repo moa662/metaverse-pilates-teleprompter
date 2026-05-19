@@ -559,23 +559,14 @@ svg {
   top: 30%;
   z-index: 20;
   height: calc(var(--prompter-font-size, 64px) * var(--prompter-line-height, 1.5) * 2.4);
-  border-top: 1px solid rgba(238, 248, 241, 0.5);
-  border-bottom: 1px solid rgba(238, 248, 241, 0.18);
-  background: linear-gradient(180deg, rgba(238, 248, 241, 0.035), rgba(238, 248, 241, 0.01));
+  border-top: 1px solid rgba(238, 248, 241, 0.34);
+  border-bottom: 1px solid rgba(238, 248, 241, 0.12);
+  background: transparent;
   pointer-events: none;
 }
 
 .reading-box::before {
-  content: "READING ZONE";
-  position: absolute;
-  left: 14px;
-  top: -13px;
-  padding: 0 8px;
-  background: #000;
-  color: rgba(238, 248, 241, 0.58);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
-  font-weight: 800;
+  content: none;
 }
 
 .prompter-controls {

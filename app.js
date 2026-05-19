@@ -1,4 +1,5 @@
-const STORAGE_KEY = "metaverse-pilates-teleprompter-v3";
+const STORAGE_KEY = "metaverse-pilates-teleprompter-v4";
+const LEGACY_STORAGE_KEY = "metaverse-pilates-teleprompter-v3";
 const DRAFT_KEY = "storm-teleprompter-editor-draft-v1";
 
 const sampleScripts = [
@@ -32,11 +33,12 @@ const appState = {
     paddingX: 5,
     mirrorMode: false,
     responsive: true,
-    countdownSeconds: 3,
+    countdownSeconds: 0,
     scrollSpeed: 52,
     settingsOpen: false,
     tapPause: true,
-    wakeLock: true
+    wakeLock: true,
+    scrollTop: 0
   }
 };
 
@@ -85,16 +87,20 @@ function readingTime(text) {
 
 function loadState() {
   try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    const currentSaved = localStorage.getItem(STORAGE_KEY);
+    const legacySaved = localStorage.getItem(LEGACY_STORAGE_KEY);
+    const saved = JSON.parse(currentSaved || legacySaved);
+    const isLegacy = !currentSaved && Boolean(legacySaved);
     appState.scripts = Array.isArray(saved?.scripts) && saved.scripts.length ? saved.scripts : sampleScripts;
-    if (saved?.prompter) Object.assign(appState.prompter, saved.prompter, { isPlaying: false, settingsOpen: false });
+    if (saved?.prompter) Object.assign(appState.prompter, saved.prompter, { isPlaying: false, settingsOpen: false, scrollTop: 0 });
+    if (isLegacy) appState.prompter.countdownSeconds = 0;
   } catch {
     appState.scripts = sampleScripts;
   }
 }
 
 function saveState() {
-  const { isPlaying, settingsOpen, activeIndex, ...prompter } = appState.prompter;
+  const { isPlaying, settingsOpen, scrollTop, activeIndex, ...prompter } = appState.prompter;
   localStorage.setItem(
     STORAGE_KEY,
     JSON.stringify({
@@ -120,6 +126,7 @@ function navigate(route, id = null) {
   clearCountdown();
   appState.route = route;
   appState.currentId = id;
+  if (route === "prompter") appState.prompter.scrollTop = 0;
   if (route === "editor") loadEditor(id);
   render();
 }
@@ -271,6 +278,7 @@ function scrollPrompterBy(delta) {
   const viewport = root.querySelector("#prompterViewport");
   if (!viewport) return;
   viewport.scrollTop = Math.max(0, Math.min(viewport.scrollTop + delta, viewport.scrollHeight - viewport.clientHeight));
+  appState.prompter.scrollTop = viewport.scrollTop;
   updatePrompterProgress();
 }
 
@@ -347,6 +355,7 @@ function tick(now) {
   const elapsed = Math.min(now - lastFrame, 120);
   lastFrame = now;
   viewport.scrollTop += appState.prompter.scrollSpeed * (elapsed / 1000);
+  appState.prompter.scrollTop = viewport.scrollTop;
   updatePrompterProgress();
   if (viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight - 2) {
     stopPrompter();
@@ -593,6 +602,10 @@ function renderToggle(id, title, desc, checked) {
 }
 
 function render() {
+  const currentViewport = root.querySelector("#prompterViewport");
+  if (appState.route === "prompter" && currentViewport) {
+    appState.prompter.scrollTop = currentViewport.scrollTop;
+  }
   if (appState.route === "editor") root.innerHTML = renderEditor();
   else if (appState.route === "prompter") root.innerHTML = renderPrompter();
   else root.innerHTML = renderManager();
@@ -600,6 +613,8 @@ function render() {
   if (window.lucide) window.lucide.createIcons();
   if (appState.route === "prompter") {
     window.requestAnimationFrame(() => {
+      const viewport = root.querySelector("#prompterViewport");
+      if (viewport) viewport.scrollTop = appState.prompter.scrollTop || 0;
       updatePrompterProgress();
     });
   }
@@ -691,6 +706,7 @@ function bindPrompter() {
     stopPrompter();
     const viewport = root.querySelector("#prompterViewport");
     if (viewport) viewport.scrollTop = 0;
+    appState.prompter.scrollTop = 0;
     updatePrompterProgress();
     render();
   });
@@ -719,7 +735,10 @@ function bindPrompter() {
       render();
     }
   });
-  root.querySelector("#prompterViewport")?.addEventListener("scroll", updatePrompterProgress, { passive: true });
+  root.querySelector("#prompterViewport")?.addEventListener("scroll", (event) => {
+    appState.prompter.scrollTop = event.currentTarget.scrollTop;
+    updatePrompterProgress();
+  }, { passive: true });
 
   bindSetting("fontSizeRange", (value) => {
     appState.prompter.fontSize = Number(value);
