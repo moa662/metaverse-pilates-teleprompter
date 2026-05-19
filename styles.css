@@ -840,7 +840,8 @@ label:focus-within {
     left: 12px;
     right: 12px;
     display: grid;
-    grid-template-columns: 1fr repeat(4, 48px);
+    grid-template-columns: minmax(92px, 1fr) repeat(5, 46px);
+    gap: 8px;
     transform: none;
   }
 
@@ -882,6 +883,25 @@ label:focus-within {
 
   .editor-toolbar .gold-button {
     padding: 0;
+  }
+
+  .prompter-controls {
+    grid-template-columns: minmax(78px, 1fr) repeat(5, 40px);
+    gap: 6px;
+  }
+
+  .prompter-controls .round-button {
+    width: 40px;
+    min-height: 40px;
+  }
+
+  .prompter-controls .gold-button {
+    min-width: 0;
+    padding: 0 10px;
+  }
+
+  .prompter-controls .gold-button span {
+    font-size: 13px;
   }
 }
 

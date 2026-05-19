@@ -539,6 +539,7 @@ function renderPrompter() {
         <button class="round-button" id="prevCharButton" type="button" aria-label="后退"><i data-lucide="skip-back"></i></button>
         <button class="round-button" id="restartPrompterButton" type="button" aria-label="重置"><i data-lucide="rotate-ccw"></i></button>
         <button class="round-button" id="nextCharButton" type="button" aria-label="前进"><i data-lucide="skip-forward"></i></button>
+        <button class="round-button" id="landscapeButton" type="button" aria-label="横屏显示"><i data-lucide="smartphone"></i></button>
         <button class="round-button" id="fullscreenButton" type="button" aria-label="全屏"><i data-lucide="maximize-2"></i></button>
       </div>
       <aside class="${settingsClass}">
@@ -702,6 +703,15 @@ function bindPrompter() {
   root.querySelector("#fullscreenButton")?.addEventListener("click", async () => {
     if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
     else await document.exitFullscreen?.();
+  });
+  root.querySelector("#landscapeButton")?.addEventListener("click", async () => {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen?.();
+      await screen.orientation?.lock?.("landscape");
+      setToast("已尝试切换横屏");
+    } catch {
+      setToast("请打开系统自动旋转后横放手机", "error");
+    }
   });
   root.querySelector("#prompterViewport")?.addEventListener("click", (event) => {
     if (appState.prompter.tapPause && appState.prompter.isPlaying) {
